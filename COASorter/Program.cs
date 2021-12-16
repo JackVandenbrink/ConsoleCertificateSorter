@@ -2,6 +2,8 @@
 using System.IO;
 using System.Reflection;
 using Salaros.Configuration;
+using Salaros;
+using System.Globalization;
 
 namespace COASorter
 {
@@ -11,6 +13,7 @@ namespace COASorter
 	class Program
 	{
 
+
 		const string CONFIG_NAME = "config.cfg";
 
 		static void Main(string[] args)
@@ -19,27 +22,13 @@ namespace COASorter
 			string configPath = execPath + CONFIG_NAME;
 			ConfigParser configFile;
 
-			try
-			{
-				configFile = new ConfigParser(configPath, CreateParserSettings());
-			}
-			catch (Salaros.Configuration.ConfigParserException)
-			{
-				Console.WriteLine("Config file values are missing");
-				Console.WriteLine("[KEY=VALUE]");
-				Console.WriteLine("Values are missing.");
-				Console.ReadKey(true);
-				return;
-			}
 
-			
-			if (configFile.Lines.Count == 0)
-			{
-				Console.WriteLine("No configuration lines were found\n Creating empty configuration file");
-				CreateEmptyConfigurationFile(configPath);
-				Console.ReadKey(true);
-				return;
-			}
+			configFile = new ConfigParser(configPath, CreateParserSettings());
+	
+			Console.ReadKey(true);
+
+
+
 			
 			Console.WriteLine("Hello World!");
 		}
@@ -47,17 +36,19 @@ namespace COASorter
 		static ConfigParserSettings CreateParserSettings()
 		{
 			string[] commentChars = { "#" };
-			string keyValueSeparator = "=";
-			
 
-			return new ConfigParserSettings {CommentCharacters = commentChars, KeyValueSeparator = keyValueSeparator };
+
+			return new ConfigParserSettings {
+				CommentCharacters = commentChars,
+				MultiLineValues = MultiLineValues.NotAllowed | MultiLineValues.AllowValuelessKeys,
+				Culture = new CultureInfo("en-US")
+				};
 		}
 
 		static void CreateEmptyConfigurationFile(string _configPath)
 		{
 			string[] lines =
 			{
-				"# Configuration File",
 				"InputDirectory=",
 				"OutputDirectory="
 			};
