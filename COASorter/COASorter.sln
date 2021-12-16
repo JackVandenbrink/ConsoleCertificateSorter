@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30907.101
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "COASorter", "COASorter.csproj", "{5E445E15-70EB-4CDE-B3C0-C3DB7CEDB492}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5E445E15-70EB-4CDE-B3C0-C3DB7CEDB492}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E445E15-70EB-4CDE-B3C0-C3DB7CEDB492}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E445E15-70EB-4CDE-B3C0-C3DB7CEDB492}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E445E15-70EB-4CDE-B3C0-C3DB7CEDB492}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6271B5C8-5217-4FD4-9348-707B6253BDE2}
+	EndGlobalSection
+EndGlobal
