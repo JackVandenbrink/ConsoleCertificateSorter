@@ -10,7 +10,7 @@ using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
 using iText.Kernel.Pdf.Canvas.Parser.Listener;
 
-
+using System.Diagnostics;
 using System.Collections.Generic;
 
 namespace COASorter
@@ -21,15 +21,17 @@ namespace COASorter
 	class Program
 	{
 
-		// Config filename
-		const string CONFIG_NAME = "config.cfg";
+		
 
 
 
 		static void Main(string[] args)
 		{
-			string configurationPath = AppDomain.CurrentDomain.BaseDirectory + CONFIG_NAME;
-			ConfigWrapper configuration = new ConfigWrapper(configurationPath);
+			string executableDirectory = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+
+			Console.WriteLine("Looking for configuration file in: " + executableDirectory);
+
+			ConfigWrapper configuration = new ConfigWrapper(executableDirectory);
 
 			string[] inputFiles = Directory.GetFiles(configuration.GetInputDirectory(),"",SearchOption.AllDirectories);
 
@@ -47,10 +49,30 @@ namespace COASorter
 			{
 				if (pdf.Scan())
 				{
-					// PDF has been verified now find appropriate fields to rename the file and move it
+					// Log what will be changed
+					Console.WriteLine("File: " + pdf.ToString() + " Copied to: " + pdf.GetDesiredPathAppend());
 
-					Console.WriteLine("Scanned File: " + pdf.ToString());
+					// Create string for output path
+					string outputPath = configuration.GetOutputDirectory() + pdf.GetDesiredPathAppend();
 
+					//Create directory to hold the file if it does not exist already
+					Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+
+					// Check to make sure file doesnt already exist before copying it
+					if (!File.Exists(outputPath))
+					{
+						File.Copy(pdf.GetSourcePath(), outputPath, false);
+					}
+					
+				}
+				else
+				{
+					// Scan returned an error.
+					// Copy this file to the error folder
+
+					string outputPath = configuration.GetErrorDirectory() + Path.GetFileName(pdf.GetSourcePath());
+					Directory.CreateDirectory(configuration.GetErrorDirectory());
+					File.Copy(pdf.GetSourcePath(), outputPath,false);
 				}
 			}
 
@@ -66,8 +88,7 @@ namespace COASorter
 		private PdfDocument mPDFDoc;
 		private string mPDFText;
 
-		private string mFolder;
-		private string mFileName;
+		private string mDesiredFilePath;
 
 		private string mReleaseYear;
 		private string mLotNumber;
@@ -91,6 +112,16 @@ namespace COASorter
 		{
 			return Path.GetFileName(mPath);
 		}
+
+		public string GetSourcePath()
+		{
+			return mPath;
+		}
+
+		public string GetDesiredPathAppend()
+		{
+			return mDesiredFilePath;
+		}
 		public bool Scan()
 		{
 			mPDFDoc = new PdfDocument(new PdfReader(mPath));
@@ -107,17 +138,65 @@ namespace COASorter
 
 			// Example of the raw text contained within this file
 			//"CERTIFICATE OF ANALYSIS\nPage 1 of   1\nPRODUCT PP2016\nMACCONKEY NO SALT\nLOT NUMBER 4308074\nEXPIRY DATE 2021.06.26\nRELEASE DATE 2021.04.06\n
-			//"CERTIFICATE OF ANALYSIS\nPage 1 of   1\nPRODUCT TM0268\nGC SUGAR SET\nLOT NUMBER 1437598\nEXPIRY DATE 2017.04.05\n
-			//"CERTIFICATE OF ANALYSIS\nDelivery/Customer information\nDate Printed (dd.mm.yyyy)\nPRODUCT MP1350\n20.09.2017\nMUELLER HINTON AGAR\nDelivery No.\nCustomer \nLOT NUMBER 1912183\nCustomer Order number\nEXPIRY DATE 2016.11.01\n
+			// If text does not follow this style it will be moved to error folder and handled manually
+
+			if (!mPDFText.Contains(CERTIFICATE_VALIDATION_TEXT))
+				return false;
+
+			mProductCode = ScanCertificateField(PRODUCT_CODE_KEY,"\n");
+			if (mProductCode == null)
+				return false;
+
+			mProductName = ScanCertificateField(mProductCode + "\n", "\n");
+			if (mProductName == null)
+				return false;
+
+			mLotNumber = ScanCertificateField(LOT_NUMBER_KEY, "\n");
+			if (mLotNumber == null)
+				return false;
 
 
+			mReleaseYear = ScanCertificateField(RELEASE_DATE_KEY, "\n");
+			if (mReleaseYear == null)
+				return false;
 
+			mReleaseYear = mReleaseYear.Substring(0, 4);
+
+			// Clean product name from forward slashes
+			mProductName = mProductName.Replace("/", "-");
+
+			// Create desired file path
+
+			mDesiredFilePath = "/" + mProductName + "/" + mReleaseYear + "/" + "COA_" + mProductCode + "_" + mLotNumber + ".pdf";
+			
 			return true;
+		}
+
+		private string ScanCertificateField(string _keyStart, string _keyEnd)
+		{
+			int subStrMin = 0;
+			int subStrMax = 0;
+
+			subStrMin = mPDFText.IndexOf(_keyStart);
+
+			if (subStrMin == -1)
+				return null;
+
+			subStrMin += _keyStart.Length;
+
+			subStrMax = mPDFText.IndexOf(_keyEnd, subStrMin);
+
+			if (subStrMax == -1)
+				return null;
+
+			return mPDFText.Substring(subStrMin, subStrMax - subStrMin);
 		}
 	}
 
 	class ConfigWrapper
 	{
+		// Config Filename
+		const string CONFIG_NAME = "config.cfg";
 
 		// Config defaults
 		const string CONFIG_FILE_HEADER_STRING = "#Configuration File";
@@ -134,15 +213,16 @@ namespace COASorter
 		const string ERROR_DIRECTORY_VALUE = "Error\\";
 		const string MOVE_INSTEAD_OF_COPY_VALUE = "false";
 
-
-		private string mPath;
+		private static string mExePath;
+		private static string mPath;
 		private ConfigParser mConfigParser;
 
 
 		public ConfigWrapper(string _path)
 		{
-			mPath = _path;
-
+			mExePath = _path;
+			mPath = mExePath + "\\" + CONFIG_NAME;
+			//
 			if (!File.Exists(_path))
 			{
 				CreateEmptyConfigurationFile(mPath);				
@@ -162,6 +242,25 @@ namespace COASorter
 			
 		}
 
+		public string GetOutputDirectory()
+		{
+			string outString = null;
+
+			GetStringValue(OUTPUT_DIRECTORY_KEY, ref outString);
+
+			return outString;
+		}
+
+		public string GetErrorDirectory()
+		{
+			string outString = null;
+
+			GetStringValue(ERROR_DIRECTORY_KEY, ref outString);
+
+			return outString;
+		}
+
+
 		public bool GetStringValue(string _key, ref string _outString)
 		{
 			_outString = mConfigParser.GetValue("Strings", _key);
@@ -173,9 +272,9 @@ namespace COASorter
 			string[] lines =
 			{
 				"[Strings]",
-				INPUT_DIRECTORY_KEY + "=" + AppDomain.CurrentDomain.BaseDirectory + INPUT_DIRECTORY_VALUE,
-				OUTPUT_DIRECTORY_KEY + "=" + AppDomain.CurrentDomain.BaseDirectory + OUTPUT_DIRECTORY_VALUE,
-				ERROR_DIRECTORY_KEY + "=" + AppDomain.CurrentDomain.BaseDirectory + ERROR_DIRECTORY_VALUE,
+				INPUT_DIRECTORY_KEY + "=" + mExePath + "\\" + INPUT_DIRECTORY_VALUE,
+				OUTPUT_DIRECTORY_KEY + "=" + mExePath + "\\" + OUTPUT_DIRECTORY_VALUE,
+				ERROR_DIRECTORY_KEY + "=" + mExePath + "\\" + ERROR_DIRECTORY_VALUE,
 				"",
 				"[Boolean]",
 				"# If true, files will be deleted from the input folder as they are processed.",
@@ -191,8 +290,8 @@ namespace COASorter
 			textFile.Close();
 
 
-			Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + INPUT_DIRECTORY_VALUE);
-			Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + OUTPUT_DIRECTORY_VALUE);
+			Directory.CreateDirectory(mExePath + "\\" + INPUT_DIRECTORY_VALUE);
+			Directory.CreateDirectory(mExePath + "\\" + OUTPUT_DIRECTORY_VALUE);
 		}
 
 	}
