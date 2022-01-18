@@ -6,48 +6,69 @@ using Utils;
 using System.IO;
 using System.Diagnostics;
 
+
 namespace Application
 {
 	class Application
 	{
-		public string ExecutablePath { get; }
-		public ConfigWrapper ConfigurationFile { get; }
-
-
+		private string ExecutablePath { get; }
+		private ConfigWrapper Configuration { get; }
+		private List<PDFWrapper> PDFFiles { get; }
+		private int CounterCopies { get; set; }
+		private int CounterDuplicates { get; set; }
+		private int CounterErrors { get; set; }
 		public Application()
 		{
 			ExecutablePath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+			Configuration = new ConfigWrapper(ExecutablePath);
+			PDFFiles = new List<PDFWrapper>();
 
-
-
-			ConfigurationFile = new ConfigWrapper(ExecutablePath);
+			CounterCopies = 0;
+			CounterDuplicates = 0;
+			CounterErrors = 0;
 		}
 		public void Run()
 		{
-			Console.WriteLine("Loaded Config from: " + ExecutablePath);
 
 
-			string[] inputFiles = Directory.GetFiles(ConfigurationFile.GetInputDirectory(), "", SearchOption.AllDirectories);
+			Console.WriteLine("\n\nSearching for input files. . .");
 
-			List<PDFWrapper> pdfInputFiles = new List<PDFWrapper>();
+			string[] inputFiles = Directory.GetFiles(Configuration.GetInputDirectory(), "", SearchOption.AllDirectories);
 
 			foreach (string file in inputFiles)
 			{
 				if (file.Contains(".pdf"))
 				{
-					pdfInputFiles.Add(new PDFWrapper(file));
+					PDFFiles.Add(new PDFWrapper(file));
 				}
 			}
 
-			foreach (PDFWrapper pdf in pdfInputFiles)
+			Console.WriteLine("PDF files found: " + PDFFiles.Count);
+
+			Console.WriteLine("\n\nPress any key to begin sorting.");
+			Console.WriteLine("\nYou can abort this procedure at any time by holding the 'Q' key.");
+			Console.ReadKey(true);
+
+			foreach (PDFWrapper pdf in PDFFiles)
 			{
+				// Check if abort key is pressed
+
+				if (Console.KeyAvailable)
+				{
+					if (Console.ReadKey(true).Key == ConsoleKey.Q)
+					{
+						Console.WriteLine("\nProcess Aborted.");
+						break;
+					}
+				}	
+
 				if (pdf.Scan())
 				{
 					// Log what will be changed
-					Console.WriteLine("File: " + pdf.ToString() + " Copied to: " + pdf.GetDesiredPathAppend());
+					Console.WriteLine("File: " + pdf.ToString() + "  \tCopied to: " + pdf.GetDesiredPathAppend());
 
 					// Create string for output path
-					string outputPath = ConfigurationFile.GetOutputDirectory() + pdf.GetDesiredPathAppend();
+					string outputPath = Configuration.GetOutputDirectory() + pdf.GetDesiredPathAppend();
 
 					//Create directory to hold the file if it does not exist already
 					Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
@@ -56,6 +77,11 @@ namespace Application
 					if (!File.Exists(outputPath))
 					{
 						File.Copy(pdf.GetSourcePath(), outputPath, false);
+						CounterCopies++;
+					}
+					else
+					{
+						CounterDuplicates++;
 					}
 
 				}
@@ -64,13 +90,27 @@ namespace Application
 					// Scan returned an error.
 					// Copy this file to the error folder
 
-					string outputPath = ConfigurationFile.GetErrorDirectory() + Path.GetFileName(pdf.GetSourcePath());
-					Directory.CreateDirectory(ConfigurationFile.GetErrorDirectory());
-					File.Copy(pdf.GetSourcePath(), outputPath, false);
+					Console.WriteLine("File: " + pdf.ToString() + "\t Error: Unexpected contents. Moving/Copying to error directory.");
+
+					string outputPath = Configuration.GetErrorDirectory() + Path.GetFileName(pdf.GetSourcePath());
+					Directory.CreateDirectory(Configuration.GetErrorDirectory());
+					if (!File.Exists(outputPath))
+					{
+						File.Copy(pdf.GetSourcePath(), outputPath, false);
+						
+					}
+					CounterErrors++;
 				}
 			}
 
+			Console.WriteLine("\n\n");
+			Console.WriteLine("Finished.\n\n");
+			Console.WriteLine("Files Copied/Moved:\t\t" + CounterCopies);
+			Console.WriteLine("Duplicates Found:\t\t" + CounterDuplicates);
+			Console.WriteLine("Errors Encountered:\t\t" + CounterErrors);
+
 			// Using this to break and check values
+			Console.WriteLine("\n\nPress any key to quit. . .");
 			Console.ReadKey(true);
 
 

@@ -13,22 +13,19 @@ namespace Utils
 	class ConfigWrapper
 	{
 		// Config Filename
-		const string CONFIG_NAME = "config.cfg";
-
-		// Config defaults
-		const string CONFIG_FILE_HEADER_STRING = "#Configuration File";
+		private const string CONFIG_NAME = "config.cfg";
 
 		// Config keys
-		const string INPUT_DIRECTORY_KEY = "Input_Directory";
-		const string OUTPUT_DIRECTORY_KEY = "Output_Directory";
-		const string ERROR_DIRECTORY_KEY = "Error_Directory";
-		const string MOVE_INSTEAD_OF_COPY_KEY = "Move_Instead_Of_Copy";
+		private const string INPUT_DIRECTORY_KEY = "Input_Directory";
+		private const string OUTPUT_DIRECTORY_KEY = "Output_Directory";
+		private const string ERROR_DIRECTORY_KEY = "Error_Directory";
+		private const string MOVE_INSTEAD_OF_COPY_KEY = "Move_Instead_Of_Copy";
 
 		// Config default values
-		const string INPUT_DIRECTORY_VALUE = "Input\\";
-		const string OUTPUT_DIRECTORY_VALUE = "Output\\";
-		const string ERROR_DIRECTORY_VALUE = "Error\\";
-		const string MOVE_INSTEAD_OF_COPY_VALUE = "false";
+		private const string INPUT_DIRECTORY_VALUE = "Input\\";
+		private const string OUTPUT_DIRECTORY_VALUE = "Output\\";
+		private const string ERROR_DIRECTORY_VALUE = "Error\\";
+		private const string MOVE_INSTEAD_OF_COPY_VALUE = "false";
 
 		private static string mExePath;
 		private static string mPath;
@@ -40,11 +37,14 @@ namespace Utils
 			mExePath = _path;
 			mPath = mExePath + "\\" + CONFIG_NAME;
 			//
-			if (!File.Exists(_path))
+			if (!File.Exists(mPath))
 			{
+				Console.WriteLine("No configuration file found at:\t" + mPath);
+				Console.WriteLine("Creating template configuration file and directories.\n");
 				CreateEmptyConfigurationFile(mPath);
 			}
 
+			Console.WriteLine("Loaded Config from: " + mPath);
 
 			mConfigParser = new ConfigParser(mPath);
 		}
@@ -88,7 +88,7 @@ namespace Utils
 		{
 			string[] lines =
 			{
-				"[Strings]",
+				"[Strings]",				
 				INPUT_DIRECTORY_KEY + "=" + mExePath + "\\" + INPUT_DIRECTORY_VALUE,
 				OUTPUT_DIRECTORY_KEY + "=" + mExePath + "\\" + OUTPUT_DIRECTORY_VALUE,
 				ERROR_DIRECTORY_KEY + "=" + mExePath + "\\" + ERROR_DIRECTORY_VALUE,
