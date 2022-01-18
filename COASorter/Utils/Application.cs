@@ -32,16 +32,33 @@ namespace Application
 
 
 			Console.WriteLine("\n\nSearching for input files. . .");
-
-			string[] inputFiles = Directory.GetFiles(Configuration.GetInputDirectory(), "", SearchOption.AllDirectories);
-
-			foreach (string file in inputFiles)
+			try
 			{
-				if (file.Contains(".pdf"))
+				string[] inputFiles = Directory.GetFiles(Configuration.GetInputDirectory(), "", SearchOption.AllDirectories);
+				foreach (string file in inputFiles)
 				{
-					PDFFiles.Add(new PDFWrapper(file));
+					if (file.Contains(".pdf"))
+					{
+						PDFFiles.Add(new PDFWrapper(file));
+					}
 				}
 			}
+			catch (System.ArgumentNullException)
+			{
+				Console.WriteLine("Exception Encountered: ArgumentNullException\nPlease check Input directory");
+				QuitApplication();
+				return;
+			}
+			catch (System.IO.DirectoryNotFoundException)
+			{
+				Console.WriteLine("Exception Encountered: DirectoryNotFoundException\nInput directory does not exist");
+				QuitApplication();
+				return;
+			}
+
+			//
+
+
 
 			Console.WriteLine("PDF files found: " + PDFFiles.Count);
 
@@ -110,10 +127,15 @@ namespace Application
 			Console.WriteLine("Errors Encountered:\t\t" + CounterErrors);
 
 			// Using this to break and check values
+
+			QuitApplication();
+
+		}
+	
+		private void QuitApplication()
+		{
 			Console.WriteLine("\n\nPress any key to quit. . .");
 			Console.ReadKey(true);
-
-
 		}
 	}
 }
