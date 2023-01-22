@@ -93,11 +93,23 @@ namespace Application
 					// Check to make sure file doesnt already exist before copying it
 					if (!File.Exists(outputPath))
 					{
-						File.Copy(pdf.GetSourcePath(), outputPath, false);
+						if (Configuration.GetMoveFileInstead())
+						{
+							File.Move(pdf.GetSourcePath(), outputPath, false);
+						}
+						else
+						{
+							File.Copy(pdf.GetSourcePath(), outputPath, false);
+						}
 						CounterCopies++;
 					}
 					else
 					{
+						if (Configuration.GetMoveFileInstead())
+						{
+							File.Delete(pdf.GetSourcePath());
+						}
+
 						CounterDuplicates++;
 					}
 

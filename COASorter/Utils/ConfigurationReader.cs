@@ -76,8 +76,14 @@ namespace Utils
 
 			return outString;
 		}
-
-
+		public bool GetMoveFileInstead()
+		{
+			return GetBoolValue(MOVE_INSTEAD_OF_COPY_KEY);
+		}
+		public bool GetBoolValue(string _key)
+		{
+			return mConfigParser.GetValue("Boolean", _key, false);
+		}
 		public bool GetStringValue(string _key, ref string _outString)
 		{
 			_outString = mConfigParser.GetValue("Strings", _key);
